@@ -727,7 +727,7 @@ class Chroot:
         else:
             self.setup_minimal_chroot()
 
-        if not settings.schroot:
+        if not settings.schroot and not settings.nspawn:
             self.mount_proc()
             self.mount_selinux()
         self.configure_chroot()
@@ -765,7 +765,7 @@ class Chroot:
         """Remove a chroot and all its contents."""
         if not settings.keep_tmpdir and os.path.exists(self.name):
             self.terminate_running_processes()
-            if not settings.schroot:
+            if not settings.schroot and not settings.nspawn:
                 self.unmount_selinux()
                 self.unmount_proc()
             if settings.lvm_volume:
@@ -872,6 +872,10 @@ class Chroot:
                 ["schroot", "--preserve-environment", "--run-session", "--chroot", "session:" +
                     self.schroot_session, "--directory", "/", "-u", "root", "--"] + prefix + command,
                    ignore_errors=ignore_errors, timeout=settings.max_command_runtime)
+        elif settings.nspawn:
+            return run(
+                ["systemd-nspawn", "--register=no", "--directory", self.name] + prefix + command,
+                       ignore_errors=ignore_errors, timeout=settings.max_command_runtime)
         else:
             return run(["chroot", self.name] + prefix + command,
                        ignore_errors=ignore_errors, timeout=settings.max_command_runtime)
@@ -2790,6 +2794,9 @@ def parse_command_line():
                       help="Use schroot session named SCHROOT-NAME for the chroot, instead of building " +
                            "a new one with debootstrap.")
 
+    parser.add_option("--nspawn", action="store_true", default=False,
+                      help="Use systemd-nspawn instead of chroot.")
+
     parser.add_option("-m", "--mirror", action="append", metavar="URL",
                       default=[],
                       help="Which Debian mirror to use.")
@@ -2983,6 +2990,7 @@ def parse_command_line():
     settings.lvm_snapshot_size = opts.lvm_snapshot_size
     settings.existing_chroot = opts.existing_chroot
     settings.schroot = opts.schroot
+    settings.nspawn = opts.nspawn
     settings.end_meta = opts.end_meta
     settings.save_end_meta = opts.save_end_meta
     settings.skip_minimize = opts.skip_minimize
