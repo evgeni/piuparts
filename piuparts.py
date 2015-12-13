@@ -1120,15 +1120,16 @@ class Chroot:
     def is_installed(self, packages):
         if not packages:
             return True
-        retcode, output = self.run(["dpkg-query", "-f", "${Package} ${Status}\n", "-W"] + packages, ignore_errors=True)
+        retcode, output = self.run(["dpkg-query", "-f", "piuparts: ${Package} ${Status}\n", "-W"] + packages, ignore_errors=True)
         if retcode != 0:
             return False
         installed = True
         for line in output.splitlines():
-            pkg, desired, whatever, status = line.split()
-            if status != 'installed':
-                logging.error("Installation of %s failed", pkg)
-                installed = False
+            if line.startswith('piuparts: '):
+                _, pkg, desired, whatever, status = line.split()
+                if status != 'installed':
+                    logging.error("Installation of %s failed", pkg)
+                    installed = False
         return installed
 
     def install_packages(self, package_files, packages, with_scripts=True):
