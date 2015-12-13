@@ -732,11 +732,12 @@ class Chroot:
             self.mount_selinux()
         self.configure_chroot()
 
+        self.mkdir_p("piuparts")
         # Copy scripts dirs into the chroot, merging all dirs together,
         # later files overwriting earlier ones.
         if settings.scriptsdirs:
-            self.mkdir_p("tmp/scripts/")
-            dest = self.relative("tmp/scripts/")
+            self.mkdir_p("piuparts/scripts/")
+            dest = self.relative("piuparts/scripts/")
             for sdir in settings.scriptsdirs:
                 logging.debug("Copying scriptsdir %s to %s" % (sdir, dest))
                 for sfile in os.listdir(sdir):
@@ -814,7 +815,7 @@ class Chroot:
         cleanup_tmpfile = lambda: os.remove(tmpfile)
         panic_handler_id = do_on_panic(cleanup_tmpfile)
 
-        run(['tar', '-czf', tmpfile, '--one-file-system', '--exclude', 'tmp/scripts', '-C', self.name, './'])
+        run(['tar', '-czf', tmpfile, '--one-file-system', '--exclude', 'piuparts/scripts', '-C', self.name, './'])
 
         os.chmod(tmpfile, 0o644)
         os.rename(tmpfile, result)
@@ -1143,9 +1144,9 @@ class Chroot:
             self.install_packages_by_name(packages, with_scripts=with_scripts)
             return
         if package_files:
-            self.copy_files(package_files, "tmp")
+            self.copy_files(package_files, "piuparts")
             tmp_files = [os.path.basename(a) for a in package_files]
-            tmp_files = [os.path.join("tmp", name) for name in tmp_files]
+            tmp_files = [os.path.join("piuparts", name) for name in tmp_files]
 
             if with_scripts:
                 self.run_scripts("pre_install")
@@ -1713,14 +1714,14 @@ class Chroot:
         if not settings.scriptsdirs:
             return
         logging.info("Running scripts " + step)
-        basepath = self.relative("tmp/scripts/")
+        basepath = self.relative("piuparts/scripts/")
         if not os.path.exists(basepath):
             logging.error("Scripts directory %s does not exist" % basepath)
             panic()
         list_scripts = sorted(os.listdir(basepath))
         for vfile in list_scripts:
             if vfile.startswith(step):
-                script = os.path.join("tmp/scripts", vfile)
+                script = os.path.join("piuparts/scripts", vfile)
                 self.run([script])
 
 
