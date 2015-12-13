@@ -874,7 +874,7 @@ class Chroot:
                    ignore_errors=ignore_errors, timeout=settings.max_command_runtime)
         elif settings.nspawn:
             return run(
-                ["systemd-nspawn", "--register=no", "--directory", self.name] + prefix + command,
+                ["systemd-nspawn", "--quiet", "--register=no", "--directory", self.name] + prefix + command,
                        ignore_errors=ignore_errors, timeout=settings.max_command_runtime)
         else:
             return run(["chroot", self.name] + prefix + command,
